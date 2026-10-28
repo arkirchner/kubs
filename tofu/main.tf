@@ -16,7 +16,7 @@ resource "libvirt_network" "talos" {
   mode = "nat"
 
   domain    = "k8s.local"
-  addresses = ["10.17.3.0/24", "2001:db8:ca2:2::1/64"]
+  addresses = ["10.17.3.0/24", "2001:db8:ca2:2::/64"]
 
   dns {
     enabled    = true
@@ -32,6 +32,12 @@ resource "libvirt_domain" "talos" {
   name   = var.cluster_name
   memory = var.memory_mb
   vcpu   = var.vcpu
+
+  # The provider defaults to the "qemu64" CPU model (x86-64-v1), which Talos
+  # rejects: it requires microarchitecture level 2 or higher.
+  cpu {
+    mode = "host-passthrough"
+  }
 
   disk {
     volume_id = libvirt_volume.talos.id
