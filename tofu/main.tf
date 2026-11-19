@@ -3,7 +3,7 @@ resource "libvirt_pool" "talos_cluster" {
   type = "dir"
 
   target = {
-    path = "~/.talos_storage_pool"
+    path = pathexpand("~/.talos_storage_pool")
   }
 }
 
