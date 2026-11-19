@@ -18,7 +18,7 @@ data "http" "gateway_api_crd" {
 }
 
 resource "kubectl_manifest" "gateway_api_crd" {
-  depends_on        = [data.talos_cluster_health.this]
+  depends_on        = [data.http.kubernetes_ready]
   for_each          = local.gateway_api_crds
   yaml_body         = data.http.gateway_api_crd[each.value].response_body
   server_side_apply = true

@@ -167,6 +167,27 @@ resource "talos_cluster_kubeconfig" "this" {
   node                 = var.controlplane_ips[0]
 }
 
+data "http" "kubernetes_ready" {
+  url                = "${local.cluster_endpoint}/readyz"
+  ca_cert_pem        = base64decode(talos_cluster_kubeconfig.this.kubernetes_client_configuration.ca_certificate)
+  client_cert_pem    = base64decode(talos_cluster_kubeconfig.this.kubernetes_client_configuration.client_certificate)
+  client_key_pem     = base64decode(talos_cluster_kubeconfig.this.kubernetes_client_configuration.client_key)
+  request_timeout_ms = 5000
+
+  retry {
+    attempts     = 36
+    min_delay_ms = 1000
+    max_delay_ms = 5000
+  }
+
+  lifecycle {
+    postcondition {
+      condition     = self.status_code == 200
+      error_message = "The Kubernetes API did not report ready."
+    }
+  }
+}
+
 data "talos_client_configuration" "this" {
   cluster_name         = var.cluster_name
   client_configuration = talos_machine_secrets.this.client_configuration

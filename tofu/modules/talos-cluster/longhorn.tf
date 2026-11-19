@@ -1,5 +1,5 @@
 resource "kubernetes_namespace" "longhorn" {
-  depends_on = [data.talos_cluster_health.this]
+  depends_on = [data.http.kubernetes_ready]
 
   metadata {
     name = "longhorn-system"
