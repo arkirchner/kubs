@@ -25,7 +25,8 @@ resource "libvirt_volume" "talos" {
 }
 
 resource "libvirt_network" "talos" {
-  name = "talos-network"
+  name      = "talos-network"
+  autostart = true
 
   forward = {
     mode = "nat"
