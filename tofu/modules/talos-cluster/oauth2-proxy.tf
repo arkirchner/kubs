@@ -105,15 +105,13 @@ resource "kubernetes_deployment" "auth_proxy" {
           }
 
           liveness_probe {
-            http_get {
-              path = "/healthz"
+            tcp_socket {
               port = 80
             }
           }
 
           readiness_probe {
-            http_get {
-              path = "/healthz"
+            tcp_socket {
               port = 80
             }
           }
