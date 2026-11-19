@@ -16,7 +16,7 @@ Run `direnv allow` at the repository root to load the Nix development shell. For
 
 ## Local cluster
 
-Set `admin_password` for Longhorn's basic authentication in a private `tofu/environments/local/terraform.tfvars` file or via `TF_VAR_admin_password`. The local libvirt network uses `10.0.0.0/24`.
+Set `admin_password` for Longhorn's basic authentication in a private `tofu/environments/local/terraform.tfvars` file or via `TF_VAR_admin_password`. The local libvirt network defaults to `10.0.0.0/24`. To use another subnet, set `libvirt_network_cidr`, `controlplane_ips`, and `worker_ips` together.
 
 ```bash
 tofu -chdir=tofu/environments/local init
@@ -35,4 +35,8 @@ Provide the existing Talos node IPs, certificate DNS names, Longhorn hostname, a
 
 ## Existing deployments
 
-The cluster configuration came from the `kvm_cluster` playground. Deployments managed there still use their original state. Before running an apply here for an existing deployment, migrate that environment's state and review the plan. The prototype's libvirt storage pool uses an absolute host path, so moving the working directory can affect the plan.
+The cluster configuration came from the `kvm_cluster` playground. Deployments managed there still use their original state.
+
+The local cluster now uses libvirt provider 0.9, which changed the resource schema and state format. Use a fresh state for a new local deployment. To run it alongside a legacy cluster, use a separate checkout and choose a different cluster name and subnet. Before adopting an existing deployment, back up its state and disks, then re-import its libvirt resources under the new schema and review the plan for replacements. The storage pool uses an absolute host path, so moving the checkout can also affect the plan.
+
+For an existing Talos cluster, use the Talos upgrade workflow for the OS and Kubernetes before changing their corresponding OpenTofu inputs. The version defaults in this repository are used to bootstrap new clusters. Run `tofu init -upgrade` in a previously initialized root to pick up the new providers before planning.

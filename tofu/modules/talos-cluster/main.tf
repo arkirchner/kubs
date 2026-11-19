@@ -20,6 +20,57 @@ resource "talos_image_factory_schematic" "this" {
 locals {
   schematic_id     = talos_image_factory_schematic.this.id
   cluster_endpoint = "https://${var.controlplane_ips[0]}:6443"
+
+  talos_version_parts = split(".", trimprefix(var.talos_version, "v"))
+  talos_kube_documents = (
+    tonumber(local.talos_version_parts[0]) > 1 ||
+    tonumber(local.talos_version_parts[1]) >= 14
+  )
+
+  cilium_patches = [
+    yamlencode({
+      apiVersion = "v1alpha1"
+      kind       = "KubeProxyConfig"
+      enabled    = false
+    }),
+    yamlencode({
+      apiVersion = "v1alpha1"
+      kind       = "KubeFlannelCNIConfig"
+      "$patch"   = "delete"
+    }),
+  ]
+
+  controlplane_scheduling_patch = yamlencode({
+    apiVersion = "v1alpha1"
+    kind       = "KubeNodeConfig"
+    taints = {
+      "node-role.kubernetes.io/control-plane" = { "$patch" = "delete" }
+    }
+  })
+
+  legacy_cilium_patch = yamlencode({
+    cluster = {
+      allowSchedulingOnControlPlanes = length(var.worker_ips) == 0
+      network = {
+        cni = { name = "none" }
+      }
+      proxy = { disabled = true }
+    }
+  })
+
+  # Talos 1.14 bind-mounts user volumes into the kubelet automatically.
+  legacy_kubelet_mount_patch = yamlencode({
+    machine = {
+      kubelet = {
+        extraMounts = [{
+          destination = "/var/mnt/persistent-storage"
+          type        = "bind"
+          source      = "/var/mnt/persistent-storage"
+          options     = ["bind", "rshared", "rw"]
+        }]
+      }
+    }
+  })
 }
 
 data "talos_machine_configuration" "controlplane" {
@@ -27,23 +78,13 @@ data "talos_machine_configuration" "controlplane" {
   machine_type       = "controlplane"
   cluster_endpoint   = local.cluster_endpoint
   machine_secrets    = talos_machine_secrets.this.machine_secrets
+  talos_version      = var.talos_version
   kubernetes_version = var.kubernetes_version
 
-  config_patches = [
-    yamlencode({
-      cluster = {
-        allowSchedulingOnControlPlanes = length(var.worker_ips) == 0
-        network = {
-          cni = {
-            name = "none"
-          }
-        }
-        proxy = {
-          disabled = true
-        }
-      }
-    }),
-    yamlencode({
+  config_patches = concat(
+    local.talos_kube_documents ? local.cilium_patches : [local.legacy_cilium_patch],
+    local.talos_kube_documents && length(var.worker_ips) == 0 ? [local.controlplane_scheduling_patch] : [],
+    [yamlencode({
       apiVersion = "v1alpha1"
       kind       = "NetworkRuleConfig"
       name       = "allow-ingress-http"
@@ -56,8 +97,8 @@ data "talos_machine_configuration" "controlplane" {
           subnet = "0.0.0.0/0"
         }
       ]
-    })
-  ]
+    })],
+  )
 }
 
 data "talos_machine_configuration" "worker" {
@@ -65,9 +106,10 @@ data "talos_machine_configuration" "worker" {
   machine_type       = "worker"
   cluster_endpoint   = local.cluster_endpoint
   machine_secrets    = talos_machine_secrets.this.machine_secrets
+  talos_version      = var.talos_version
   kubernetes_version = var.kubernetes_version
 
-  config_patches = [
+  config_patches = concat([
     yamlencode({
       apiVersion = "v1alpha1"
       kind       = "VolumeConfig"
@@ -93,21 +135,7 @@ data "talos_machine_configuration" "worker" {
         grow    = true
       }
     }),
-    yamlencode({
-      machine = {
-        kubelet = {
-          extraMounts = [
-            {
-              destination = "/var/mnt/persistent-storage"
-              type        = "bind"
-              source      = "/var/mnt/persistent-storage"
-              options     = ["bind", "rshared", "rw"]
-            }
-          ]
-        }
-      }
-    })
-  ]
+  ], local.talos_kube_documents ? [] : [local.legacy_kubelet_mount_patch])
 }
 
 resource "talos_machine_configuration_apply" "controlplane" {

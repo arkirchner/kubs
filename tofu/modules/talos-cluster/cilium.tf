@@ -1,6 +1,7 @@
 locals {
-  version                 = "1.20.0-pre.3"
-  gateway_api_crd_version = "v1.5.1"
+  version = "1.20.5"
+  # Keep the CRDs on the Gateway API version supported by this Cilium release.
+  gateway_api_crd_version = "v1.6.3"
   gateway_api_crds = toset([
     "gatewayclasses",
     "gateways",
@@ -33,79 +34,23 @@ resource "helm_release" "cilium" {
   version    = local.version
   namespace  = "kube-system"
 
-  set {
-    name  = "ipam.mode"
-    value = "kubernetes"
-  }
-
-  set {
-    name  = "kubeProxyReplacement"
-    value = "true"
-  }
-
-  set {
-    name  = "securityContext.capabilities.ciliumAgent"
-    value = "{CHOWN,KILL,NET_ADMIN,NET_RAW,NET_BIND_SERVICE,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}"
-  }
-
-  set {
-    name  = "securityContext.capabilities.cleanCiliumState"
-    value = "{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}"
-  }
-
-  set {
-    name  = "cgroup.autoMount.enabled"
-    value = "false"
-  }
-
-  set {
-    name  = "cgroup.hostRoot"
-    value = "/sys/fs/cgroup"
-  }
-
-  set {
-    name  = "k8sServiceHost"
-    value = "localhost"
-  }
-
-  set {
-    name  = "k8sServicePort"
-    value = "7445"
-  }
-
-  set {
-    name  = "gatewayAPI.enabled"
-    value = "true"
-  }
-  set {
-    name  = "gatewayAPI.enableAlpn"
-    value = "true"
-  }
-
-  set {
-    name  = "gatewayAPI.enableAppProtocol"
-    value = "true"
-  }
-
-  set {
-    name  = "gatewayAPI.hostNetwork.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "envoy.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "envoy.securityContext.capabilities.keepCapNetBindService"
-    value = "true"
-  }
-
-  set {
-    name  = "envoy.securityContext.capabilities.envoy"
-    value = "{NET_ADMIN,SYS_ADMIN,NET_BIND_SERVICE}"
-  }
+  set = [
+    { name = "ipam.mode", value = "kubernetes" },
+    { name = "kubeProxyReplacement", value = "true" },
+    { name = "securityContext.capabilities.ciliumAgent", value = "{CHOWN,KILL,NET_ADMIN,NET_RAW,NET_BIND_SERVICE,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" },
+    { name = "securityContext.capabilities.cleanCiliumState", value = "{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" },
+    { name = "cgroup.autoMount.enabled", value = "false" },
+    { name = "cgroup.hostRoot", value = "/sys/fs/cgroup" },
+    { name = "k8sServiceHost", value = "localhost" },
+    { name = "k8sServicePort", value = "7445" },
+    { name = "gatewayAPI.enabled", value = "true" },
+    { name = "gatewayAPI.enableAlpn", value = "true" },
+    { name = "gatewayAPI.enableAppProtocol", value = "true" },
+    { name = "gatewayAPI.hostNetwork.enabled", value = "true" },
+    { name = "envoy.enabled", value = "true" },
+    { name = "envoy.securityContext.capabilities.keepCapNetBindService", value = "true" },
+    { name = "envoy.securityContext.capabilities.envoy", value = "{NET_ADMIN,SYS_ADMIN,NET_BIND_SERVICE}" },
+  ]
 }
 
 resource "helm_release" "cert_manager" {
@@ -114,19 +59,14 @@ resource "helm_release" "cert_manager" {
   name             = "cert-manager"
   repository       = "oci://quay.io/jetstack/charts"
   chart            = "cert-manager"
-  version          = "v1.20.2"
+  version          = "v1.21.3"
   namespace        = "cert-manager"
   create_namespace = true
 
-  set {
-    name  = "crds.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "config.enableGatewayAPI"
-    value = "true"
-  }
+  set = [
+    { name = "crds.enabled", value = "true" },
+    { name = "config.enableGatewayAPI", value = "true" },
+  ]
 }
 
 resource "kubectl_manifest" "cluster_issuer" {

@@ -11,14 +11,14 @@ module "cluster" {
   ephemeral_disk_size   = var.ephemeral_disk_size
   admin_username        = var.admin_username
   admin_password        = var.admin_password
-  node_dependency       = [libvirt_domain.controlplane, libvirt_domain.worker]
+  node_dependency       = libvirt_domain.node
   cluster_issuer_spec = {
     selfSigned = {}
   }
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.cluster.cluster_endpoint
     client_certificate     = base64decode(module.cluster.kubernetes_client_configuration.client_certificate)
     client_key             = base64decode(module.cluster.kubernetes_client_configuration.client_key)

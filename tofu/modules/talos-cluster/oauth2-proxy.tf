@@ -86,7 +86,7 @@ resource "kubernetes_deployment" "auth_proxy" {
       spec {
         container {
           name  = "nginx"
-          image = "nginx:alpine"
+          image = "nginx:1.31.9-alpine"
 
           port {
             container_port = 80

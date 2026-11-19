@@ -25,7 +25,7 @@ variable "libvirt_network" {
 variable "talos_image_url" {
   type        = string
   description = "Talos QCOW2 image URL to boot from."
-  default     = "https://factory.talos.dev/image/d9ff89777e246792e7642abd3220a616afb4e49822382e4213a2e528ab826fe5/v1.14.5/metal-amd64.qcow2"
+  default     = "https://factory.talos.dev/image/d9ff89777e246792e7642abd3220a616afb4e49822382e4213a2e528ab826fe5/v1.14.6/metal-amd64.qcow2"
 }
 
 variable "memory_mb" {

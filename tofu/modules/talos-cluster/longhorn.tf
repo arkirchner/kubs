@@ -16,23 +16,14 @@ resource "helm_release" "longhorn" {
   name       = "longhorn"
   repository = "https://charts.longhorn.io"
   chart      = "longhorn"
-  version    = "1.12.0"
+  version    = "1.13.0"
   namespace  = kubernetes_namespace.longhorn.metadata[0].name
 
-  set {
-    name  = "defaultSettings.defaultDataPath"
-    value = "/var/mnt/persistent-storage"
-  }
-
-  set {
-    name  = "longhornUI.replicas"
-    value = "1"
-  }
-
-  set {
-    name  = "httproute.enabled"
-    value = "false"
-  }
+  set = [
+    { name = "defaultSettings.defaultDataPath", value = "/var/mnt/persistent-storage" },
+    { name = "longhornUI.replicas", value = "1" },
+    { name = "httproute.enabled", value = "false" },
+  ]
 }
 
 resource "kubectl_manifest" "longhorn_httproute" {
@@ -102,7 +93,7 @@ resource "kubectl_manifest" "oauth2_proxy_reference_grant" {
   depends_on = [kubernetes_namespace.auth]
 
   yaml_body = yamlencode({
-    apiVersion = "gateway.networking.k8s.io/v1beta1"
+    apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "ReferenceGrant"
     metadata = {
       name      = "allow-longhorn-to-auth-proxy"

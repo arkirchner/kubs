@@ -7,13 +7,13 @@ variable "cluster_name" {
 variable "talos_version" {
   description = "Talos Linux version"
   type        = string
-  default     = "v1.13.3"
+  default     = "v1.14.6"
 }
 
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "v1.36.1"
+  default     = "v1.37.2"
 }
 
 variable "controlplane_ips" {

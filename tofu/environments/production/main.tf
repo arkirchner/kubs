@@ -37,7 +37,7 @@ module "cluster" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.cluster.cluster_endpoint
     client_certificate     = base64decode(module.cluster.kubernetes_client_configuration.client_certificate)
     client_key             = base64decode(module.cluster.kubernetes_client_configuration.client_key)

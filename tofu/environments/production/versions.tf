@@ -4,31 +4,31 @@ terraform {
   required_providers {
     talos = {
       source  = "siderolabs/talos"
-      version = ">= 0.11.0"
+      version = "~> 0.12.0"
     }
     ionoscloud = {
       source  = "ionos-cloud/ionoscloud"
-      version = "~> 6.0"
+      version = "~> 6.7.41"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.0"
+      version = "~> 3.3"
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
+      version = "~> 3.5"
     }
     kubectl = {
       source  = "gavinbunney/kubectl"
-      version = "~> 1.0"
+      version = "~> 1.19"
     }
     time = {
       source  = "hashicorp/time"
-      version = "~> 0.11"
+      version = "~> 0.14.2"
     }
     http = {
       source  = "hashicorp/http"
-      version = "~> 3.0"
+      version = "~> 3.6.3"
     }
   }
 }
