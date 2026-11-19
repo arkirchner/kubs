@@ -1,34 +1,38 @@
-# Talos Single-Node Cluster with OpenTofu
+# Talos infrastructure
 
-This repo sets up a single-node Talos Kubernetes cluster locally first, then applies a similar configuration to a VPS. All infrastructure is managed with OpenTofu.
+OpenTofu manages Talos infrastructure. Each root has its own OpenTofu state.
 
-## Local Test Setup (VM)
+| Root | Purpose |
+| --- | --- |
+| `tofu/` | Single-VM libvirt smoke test. Boots Talos without bootstrapping Kubernetes. |
+| `tofu/environments/local/` | Local Kubernetes cluster on libvirt with one control-plane VM, two worker VMs, and a self-signed certificate issuer. |
+| `tofu/environments/production/` | Cluster configuration for existing Talos nodes, with a Let's Encrypt issuer. IONOS VM provisioning is still a stub. |
 
-The local test environment uses libvirt to boot a single Talos VM from an official QCOW2 image. Talos config and Kubernetes bootstrap will be added next.
+Both cluster environments use `tofu/modules/talos-cluster/` for Talos bootstrap, Cilium, Gateway API, cert-manager, and Longhorn.
 
-### Prerequisites
+## Prerequisites
 
-- nix + direnv
-- libvirt + qemu
-- OpenTofu (provided by `direnv` via the flake)
+Run `direnv allow` at the repository root to load the Nix development shell. For local VMs, install and start libvirt and QEMU with KVM support, and make sure your user can connect to `qemu:///system`.
 
-### Quick Start
+## Local cluster
+
+Set `admin_password` for Longhorn's basic authentication in a private `tofu/environments/local/terraform.tfvars` file or via `TF_VAR_admin_password`. The local libvirt network uses `10.0.0.0/24`.
 
 ```bash
-direnv allow
-tofu -chdir=tofu init
-tofu -chdir=tofu apply
+tofu -chdir=tofu/environments/local init
+tofu -chdir=tofu/environments/local plan
+tofu -chdir=tofu/environments/local apply
+./tofu/setup_clients tofu/environments/local
 ```
 
-## Plan
+The helper prints paths to private, environment-specific client files. Pass them to `kubectl --kubeconfig` and `talosctl --talosconfig`. Example routing manifests are in `tofu/examples/`.
 
-1. Local single-node VM with libvirt (this step).
-2. Add Talos provider to generate machine config and apply it to the VM.
-3. Bootstrap Kubernetes and export kubeconfig.
-4. Add OpenTofu-managed Helm charts.
-5. Mirror the same configuration for the VPS (single-node cluster).
+For the single-VM smoke test, use `tofu -chdir=tofu init` and `tofu -chdir=tofu apply`. Override its image with the `talos_image_url` variable.
 
-## Notes
+## Production cluster
 
-- The VM image URL can be overridden with `-var="talos_image_url=..."`.
-- State files are ignored by git; use `.tfvars` files for local overrides.
+Provide the existing Talos node IPs, certificate DNS names, Longhorn hostname, and admin credentials using private variables. Use `tofu/environments/production` as the OpenTofu root and as the argument to `tofu/setup_clients`. For certificate issuance, point DNS at the Gateway and make it reachable on port 80 for the HTTP-01 challenge.
+
+## Existing deployments
+
+The cluster configuration came from the `kvm_cluster` playground. Deployments managed there still use their original state. Before running an apply here for an existing deployment, migrate that environment's state and review the plan. The prototype's libvirt storage pool uses an absolute host path, so moving the working directory can affect the plan.

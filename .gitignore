@@ -10,3 +10,11 @@ override.tf.json
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
+tfplan
+tfplan.*
+*.tfplan
+.state-archive/
+.talos_image/
+.libvirt-pool/
+.client-config/

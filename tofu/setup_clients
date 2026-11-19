@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || ! -d "$1" ]]; then
+    printf 'Usage: %s ENVIRONMENT_DIRECTORY\n' "$0" >&2
+    exit 2
+fi
+
+cd -- "$1"
+umask 077
+mkdir -p .client-config
+config_dir=$(mktemp -d "$PWD/.client-config/cluster.XXXXXXXX")
+trap 'rm -rf -- "$config_dir"' EXIT
+
+tofu output -raw kubeconfig > "$config_dir/kubeconfig"
+tofu output -raw talosconfig > "$config_dir/talosconfig"
+
+trap - EXIT
+printf 'Kubeconfig:   %s\nTalos config: %s\n' "$config_dir/kubeconfig" "$config_dir/talosconfig"

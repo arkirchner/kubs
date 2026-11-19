@@ -13,10 +13,12 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         packages = [
+          pkgs.curl
           pkgs.opentofu
           pkgs.talosctl
           pkgs.kubectl
           pkgs.kubernetes-helm
+          pkgs.zstd
         ];
       };
     };
