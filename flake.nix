@@ -16,7 +16,7 @@
           pkgs.opentofu
           pkgs.talosctl
           pkgs.kubectl
-          pkgs.helm
+          pkgs.kubernetes-helm
         ];
       };
     };
