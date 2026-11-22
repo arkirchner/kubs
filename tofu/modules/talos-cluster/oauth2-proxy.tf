@@ -1,4 +1,4 @@
-resource "kubernetes_namespace" "auth" {
+resource "kubernetes_namespace_v1" "auth" {
   depends_on = [helm_release.cilium]
 
   metadata {
@@ -6,12 +6,12 @@ resource "kubernetes_namespace" "auth" {
   }
 }
 
-resource "kubernetes_secret" "auth_proxy_htpasswd" {
-  depends_on = [kubernetes_namespace.auth]
+resource "kubernetes_secret_v1" "auth_proxy_htpasswd" {
+  depends_on = [kubernetes_namespace_v1.auth]
 
   metadata {
     name      = "auth-proxy-htpasswd"
-    namespace = kubernetes_namespace.auth.metadata[0].name
+    namespace = kubernetes_namespace_v1.auth.metadata[0].name
   }
 
   data = {
@@ -19,12 +19,12 @@ resource "kubernetes_secret" "auth_proxy_htpasswd" {
   }
 }
 
-resource "kubernetes_config_map" "auth_proxy" {
-  depends_on = [kubernetes_namespace.auth]
+resource "kubernetes_config_map_v1" "auth_proxy" {
+  depends_on = [kubernetes_namespace_v1.auth]
 
   metadata {
     name      = "auth-proxy"
-    namespace = kubernetes_namespace.auth.metadata[0].name
+    namespace = kubernetes_namespace_v1.auth.metadata[0].name
   }
 
   data = {
@@ -56,12 +56,12 @@ resource "kubernetes_config_map" "auth_proxy" {
   }
 }
 
-resource "kubernetes_deployment" "auth_proxy" {
-  depends_on = [kubernetes_namespace.auth, kubernetes_config_map.auth_proxy, kubernetes_secret.auth_proxy_htpasswd]
+resource "kubernetes_deployment_v1" "auth_proxy" {
+  depends_on = [kubernetes_namespace_v1.auth, kubernetes_config_map_v1.auth_proxy, kubernetes_secret_v1.auth_proxy_htpasswd]
 
   metadata {
     name      = "auth-proxy"
-    namespace = kubernetes_namespace.auth.metadata[0].name
+    namespace = kubernetes_namespace_v1.auth.metadata[0].name
     labels = {
       app = "auth-proxy"
     }
@@ -121,7 +121,7 @@ resource "kubernetes_deployment" "auth_proxy" {
           name = "nginx-config"
 
           config_map {
-            name = kubernetes_config_map.auth_proxy.metadata[0].name
+            name = kubernetes_config_map_v1.auth_proxy.metadata[0].name
           }
         }
 
@@ -129,7 +129,7 @@ resource "kubernetes_deployment" "auth_proxy" {
           name = "htpasswd"
 
           secret {
-            secret_name = kubernetes_secret.auth_proxy_htpasswd.metadata[0].name
+            secret_name = kubernetes_secret_v1.auth_proxy_htpasswd.metadata[0].name
           }
         }
       }
@@ -137,12 +137,12 @@ resource "kubernetes_deployment" "auth_proxy" {
   }
 }
 
-resource "kubernetes_service" "auth_proxy" {
-  depends_on = [kubernetes_namespace.auth]
+resource "kubernetes_service_v1" "auth_proxy" {
+  depends_on = [kubernetes_namespace_v1.auth]
 
   metadata {
     name      = "auth-proxy"
-    namespace = kubernetes_namespace.auth.metadata[0].name
+    namespace = kubernetes_namespace_v1.auth.metadata[0].name
   }
 
   spec {

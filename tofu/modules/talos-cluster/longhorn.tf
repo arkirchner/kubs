@@ -1,4 +1,4 @@
-resource "kubernetes_namespace" "longhorn" {
+resource "kubernetes_namespace_v1" "longhorn" {
   depends_on = [data.http.kubernetes_ready]
 
   metadata {
@@ -11,13 +11,13 @@ resource "kubernetes_namespace" "longhorn" {
 }
 
 resource "helm_release" "longhorn" {
-  depends_on = [kubernetes_namespace.longhorn, kubectl_manifest.gateway]
+  depends_on = [kubernetes_namespace_v1.longhorn, kubectl_manifest.gateway]
 
   name       = "longhorn"
   repository = "https://charts.longhorn.io"
   chart      = "longhorn"
   version    = "1.13.0"
-  namespace  = kubernetes_namespace.longhorn.metadata[0].name
+  namespace  = kubernetes_namespace_v1.longhorn.metadata[0].name
 
   set = [
     { name = "defaultSettings.defaultDataPath", value = "/var/mnt/persistent-storage" },
@@ -27,14 +27,14 @@ resource "helm_release" "longhorn" {
 }
 
 resource "kubectl_manifest" "longhorn_httproute" {
-  depends_on = [helm_release.longhorn, kubectl_manifest.oauth2_proxy_reference_grant, kubernetes_deployment.auth_proxy]
+  depends_on = [helm_release.longhorn, kubectl_manifest.oauth2_proxy_reference_grant, kubernetes_deployment_v1.auth_proxy]
 
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "HTTPRoute"
     metadata = {
       name      = "longhorn"
-      namespace = kubernetes_namespace.longhorn.metadata[0].name
+      namespace = kubernetes_namespace_v1.longhorn.metadata[0].name
     }
     spec = {
       parentRefs = [
@@ -90,7 +90,7 @@ resource "kubectl_manifest" "longhorn_httproute" {
 }
 
 resource "kubectl_manifest" "oauth2_proxy_reference_grant" {
-  depends_on = [kubernetes_namespace.auth]
+  depends_on = [kubernetes_namespace_v1.auth]
 
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1"
