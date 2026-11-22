@@ -59,7 +59,7 @@ The cluster configuration came from the `kvm_cluster` playground. Deployments ma
 
 The local cluster now uses libvirt provider 0.9, which changed the resource schema and state format. Use a fresh state for a new local deployment. To run it alongside a legacy cluster, use a separate checkout and choose a different cluster name and subnet. Before adopting an existing deployment, back up its state and disks, then re-import its libvirt resources under the new schema and review the plan for replacements. The storage pool uses an absolute host path, so moving the checkout can also affect the plan.
 
-For an existing Talos cluster, use the Talos upgrade workflow for the OS and Kubernetes before changing their corresponding OpenTofu inputs. The version defaults in this repository are used to bootstrap new clusters. Run `tofu init -upgrade` in a previously initialized root to pick up the new providers before planning.
+For an existing Talos cluster, use the Talos upgrade workflow for the OS and Kubernetes before changing their corresponding OpenTofu inputs. The version defaults in this repository are used to bootstrap new clusters. Run `tofu init` in each root before planning.
 
 ### Split an existing state
 
@@ -101,3 +101,7 @@ If existing state still tracks the Kubernetes objects under the addresses below,
 | `module.cluster.kubernetes_config_map.auth_proxy` | `module.cluster.kubernetes_config_map_v1.auth_proxy` | `auth/auth-proxy` |
 | `module.cluster.kubernetes_deployment.auth_proxy` | `module.cluster.kubernetes_deployment_v1.auth_proxy` | `auth/auth-proxy` |
 | `module.cluster.kubernetes_service.auth_proxy` | `module.cluster.kubernetes_service_v1.auth_proxy` | `auth/auth-proxy` |
+
+## Provider upgrades
+
+Each root tracks its provider selections in `.terraform.lock.hcl`. Run `tofu init -upgrade` in the affected root when intentionally updating providers, then review the lock file diff and the plan. CI checks formatting and validates all roots with their locks in read-only mode.

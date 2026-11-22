@@ -1,6 +1,5 @@
 .direnv/
 .terraform/
-.terraform.lock.hcl
 crash.log
 crash.*.log
 override.tf
