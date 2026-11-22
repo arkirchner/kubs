@@ -10,18 +10,6 @@ variable "libvirt_uri" {
   default     = "qemu:///system"
 }
 
-variable "libvirt_pool" {
-  type        = string
-  description = "libvirt storage pool to use."
-  default     = "default"
-}
-
-variable "libvirt_network" {
-  type        = string
-  description = "libvirt network to attach the VM to."
-  default     = "default"
-}
-
 variable "talos_image_url" {
   type        = string
   description = "Talos QCOW2 image URL to boot from."

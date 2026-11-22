@@ -6,7 +6,7 @@ OpenTofu manages Talos infrastructure. Each root has its own OpenTofu state.
 | --- | --- |
 | `tofu/` | Single-VM libvirt smoke test. Boots Talos without bootstrapping Kubernetes. |
 | `tofu/environments/local/` | Local Kubernetes cluster on libvirt with one control-plane VM, two worker VMs, and a self-signed certificate issuer. |
-| `tofu/environments/production/` | Cluster configuration for existing Talos nodes, with a Let's Encrypt issuer. IONOS VM provisioning is still a stub. |
+| `tofu/environments/production/` | Cluster configuration for existing Talos nodes, with a Let's Encrypt issuer. |
 
 Both cluster environments use `tofu/modules/talos-cluster/` for Talos bootstrap, Cilium, Gateway API, cert-manager, and Longhorn.
 
