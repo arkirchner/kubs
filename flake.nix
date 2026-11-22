@@ -11,6 +11,8 @@
       pkgs = import nixpkgs { inherit system; };
     in
     {
+      packages.${system}.htpasswd = pkgs.apacheHttpd;
+
       devShells.${system}.default = pkgs.mkShell {
         packages = [
           pkgs.curl

@@ -52,14 +52,9 @@ variable "ephemeral_disk_size" {
   default     = "10GB"
 }
 
-variable "admin_username" {
-  description = "Username for admin basic auth"
-  type        = string
-  default     = "admin"
-}
-
-variable "admin_password" {
-  description = "Plaintext password for admin basic auth"
+variable "admin_htpasswd" {
+  description = "Precomputed bcrypt htpasswd entry for Longhorn basic authentication"
   type        = string
   sensitive   = true
+  nullable    = false
 }

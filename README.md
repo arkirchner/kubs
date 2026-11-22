@@ -16,7 +16,7 @@ Run `direnv allow` at the repository root to load the Nix development shell. For
 
 ## Local cluster
 
-Set `admin_password` for Longhorn's basic authentication in a private `tofu/environments/local/terraform.tfvars` file or via `TF_VAR_admin_password`. The local libvirt network defaults to `10.0.0.0/24`. To use another subnet, set `libvirt_network_cidr`, `controlplane_ips`, and `worker_ips` together.
+Set `admin_htpasswd` for the Longhorn UI as described below. The local libvirt network defaults to `10.0.0.0/24`. To use another subnet, set `libvirt_network_cidr`, `controlplane_ips`, and `worker_ips` together.
 
 ```bash
 tofu -chdir=tofu/environments/local init
@@ -32,6 +32,10 @@ For the single-VM smoke test, use `tofu -chdir=tofu init` and `tofu -chdir=tofu 
 ## Production cluster
 
 Provide the existing Talos node IPs, certificate DNS names, Longhorn hostname, and admin credentials using private variables. Use `tofu/environments/production` as the OpenTofu root and as the argument to `tofu/setup_clients`. For certificate issuance, point DNS at the Gateway and make it reachable on port 80 for the HTTP-01 challenge.
+
+## Longhorn UI credentials
+
+Generate a bcrypt entry with `nix shell .#htpasswd -c htpasswd -nB admin`. It prompts for the password and prints one `username:hash` line. Store that line in `admin_htpasswd` in the environment's private `terraform.tfvars` or pass it through `TF_VAR_admin_htpasswd`. With an existing installation, reuse the current entry from the `auth-proxy-htpasswd` Secret in the `auth` namespace to preserve the password and avoid a Secret update. Remove the old `admin_username` and `admin_password` inputs.
 
 ## Existing deployments
 

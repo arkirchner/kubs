@@ -9,8 +9,7 @@ module "cluster" {
   certificate_dns_names = var.certificate_dns_names
   longhorn_host         = var.longhorn_host
   ephemeral_disk_size   = var.ephemeral_disk_size
-  admin_username        = var.admin_username
-  admin_password        = var.admin_password
+  admin_htpasswd        = var.admin_htpasswd
   cluster_issuer_spec = {
     acme = {
       server = "https://acme-v02.api.letsencrypt.org/directory"

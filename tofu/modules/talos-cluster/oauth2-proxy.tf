@@ -15,7 +15,7 @@ resource "kubernetes_secret_v1" "auth_proxy_htpasswd" {
   }
 
   data = {
-    "htpasswd" = "${var.admin_username}:${bcrypt(var.admin_password)}"
+    "htpasswd" = trimspace(var.admin_htpasswd)
   }
 }
 
