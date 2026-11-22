@@ -1,6 +1,4 @@
 resource "kubernetes_namespace_v1" "longhorn" {
-  depends_on = [data.http.kubernetes_ready]
-
   metadata {
     name = "longhorn-system"
 

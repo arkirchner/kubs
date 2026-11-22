@@ -7,8 +7,9 @@ OpenTofu manages Talos infrastructure. Each root has its own OpenTofu state.
 | `tofu/` | Single-VM libvirt smoke test. Boots Talos without bootstrapping Kubernetes. |
 | `tofu/environments/local/` | Local Kubernetes cluster on libvirt with one control-plane VM, two worker VMs, and a self-signed certificate issuer. |
 | `tofu/environments/production/` | Cluster configuration for existing Talos nodes, with a Let's Encrypt issuer. |
+| `tofu/environments/local/addons/` and `tofu/environments/production/addons/` | Kubernetes add-ons for the corresponding cluster. |
 
-Both cluster environments use `tofu/modules/talos-cluster/` for Talos bootstrap, Cilium, Gateway API, cert-manager, and Longhorn.
+Both environments use `tofu/modules/talos-cluster/` to bootstrap Talos and `tofu/modules/cluster-addons/` to manage Cilium, Gateway API, cert-manager, and Longhorn.
 
 ## Prerequisites
 
@@ -16,26 +17,41 @@ Run `direnv allow` at the repository root to load the Nix development shell. For
 
 ## Local cluster
 
-Set `admin_htpasswd` for the Longhorn UI as described below. The local libvirt network defaults to `10.0.0.0/24`. To use another subnet, set `libvirt_network_cidr`, `controlplane_ips`, and `worker_ips` together.
+The local libvirt network defaults to `10.0.0.0/24`. To use another subnet, set `libvirt_network_cidr`, `controlplane_ips`, and `worker_ips` together.
 
 ```bash
-tofu -chdir=tofu/environments/local init
-tofu -chdir=tofu/environments/local plan
-tofu -chdir=tofu/environments/local apply
-./tofu/setup_clients tofu/environments/local
+environment=tofu/environments/local
+tofu -chdir="$environment" init
+tofu -chdir="$environment" plan
+tofu -chdir="$environment" apply
+./tofu/setup_clients "$environment"
 ```
 
 The helper prints paths to private, environment-specific client files. Pass them to `kubectl --kubeconfig` and `talosctl --talosconfig`. Example routing manifests are in `tofu/examples/`.
+
+Continue with the add-on steps below to install Cilium and make Kubernetes nodes ready.
 
 For the single-VM smoke test, use `tofu -chdir=tofu init` and `tofu -chdir=tofu apply`. Override its image with the `talos_image_url` variable.
 
 ## Production cluster
 
-Provide the existing Talos node IPs, certificate DNS names, Longhorn hostname, and admin credentials using private variables. Use `tofu/environments/production` as the OpenTofu root and as the argument to `tofu/setup_clients`. For certificate issuance, point DNS at the Gateway and make it reachable on port 80 for the HTTP-01 challenge.
+Supply the existing Talos node IPs in private bootstrap variables. Use `environment=tofu/environments/production` with the same bootstrap commands. In the production add-on variables, supply the certificate DNS names, Longhorn hostname, and admin htpasswd entry. For certificate issuance, point DNS at the Gateway and make it reachable on port 80 for the HTTP-01 challenge.
+
+## Kubernetes add-ons
+
+Set `admin_htpasswd` as described below. Set `kubeconfig_path` to the absolute kubeconfig path printed by `setup_clients`. Put these inputs and any add-on overrides in the private `addons/terraform.tfvars` under the selected environment.
+
+```bash
+tofu -chdir="$environment/addons" init
+tofu -chdir="$environment/addons" plan
+tofu -chdir="$environment/addons" apply
+```
+
+Use this root for routine add-on changes. When tearing down a cluster, remove the add-ons while the Kubernetes API is still accessible.
 
 ## Longhorn UI credentials
 
-Generate a bcrypt entry with `nix shell .#htpasswd -c htpasswd -nB admin`. It prompts for the password and prints one `username:hash` line. Store that line in `admin_htpasswd` in the environment's private `terraform.tfvars` or pass it through `TF_VAR_admin_htpasswd`. With an existing installation, reuse the current entry from the `auth-proxy-htpasswd` Secret in the `auth` namespace to preserve the password and avoid a Secret update. Remove the old `admin_username` and `admin_password` inputs.
+Generate a bcrypt entry with `nix shell .#htpasswd -c htpasswd -nB admin`. It prompts for the password and prints one `username:hash` line. Store that line in `admin_htpasswd` in the environment's private `addons/terraform.tfvars` or pass it through `TF_VAR_admin_htpasswd`. With an existing installation, reuse the current entry from the `auth-proxy-htpasswd` Secret in the `auth` namespace to preserve the password and avoid a Secret update. Remove the old `admin_username` and `admin_password` inputs.
 
 ## Existing deployments
 
@@ -45,9 +61,37 @@ The local cluster now uses libvirt provider 0.9, which changed the resource sche
 
 For an existing Talos cluster, use the Talos upgrade workflow for the OS and Kubernetes before changing their corresponding OpenTofu inputs. The version defaults in this repository are used to bootstrap new clusters. Run `tofu init -upgrade` in a previously initialized root to pick up the new providers before planning.
 
+### Split an existing state
+
+An existing cluster keeps its current Kubernetes objects by moving their state bindings into the add-on root before applying either root. Move any `certificate_dns_names` and `longhorn_host` overrides to `addons/terraform.tfvars` and configure the kubeconfig and htpasswd entry there.
+
+For the default workspace with local state, run the following from the environment directory while no other OpenTofu operations are running. It prepares two state files in a private archive and leaves the active state available for comparison.
+
+```bash
+(
+  set -euo pipefail
+  umask 077
+  test "$(tofu workspace show)" = default
+  test -s terraform.tfstate
+  test ! -e addons/terraform.tfstate
+  mkdir -p .state-archive
+  archive=$(mktemp -d .state-archive/addons.XXXXXXXX)
+  cp terraform.tfstate "$archive/original.tfstate"
+  cp "$archive/original.tfstate" "$archive/bootstrap.tfstate"
+  tofu state list -state="$archive/bootstrap.tfstate" |
+    grep -E '^module\.cluster\.(helm_release\.|kubernetes_[^.]+\.|kubectl_manifest\.|data\.http\.gateway_api_crd\[)' > "$archive/addresses"
+  while IFS= read -r address; do
+    tofu state mv -state="$archive/bootstrap.tfstate" -state-out="$archive/addons.tfstate" "$address" "$address"
+  done < "$archive/addresses"
+  printf 'Prepared state files in %s\n' "$archive"
+)
+```
+
+Inspect both files with `tofu state list -state=FILE`. Verify that the live `terraform.tfstate` still matches `original.tfstate` with `cmp` and that the add-on root has no state yet. Install `bootstrap.tfstate` as `terraform.tfstate` and `addons.tfstate` as `addons/terraform.tfstate` using `install -m 600`. Keep the archive and review a plan in each root before applying. Discard any saved plans from before the split.
+
 ### Kubernetes resource addresses
 
-If existing state still tracks the Kubernetes objects under the addresses below, back up the state before upgrading. For each listed address present in `tofu state list`, run `tofu state rm OLD_ADDRESS`, then `tofu import NEW_ADDRESS IMPORT_ID` from the environment that manages the object. Complete the imports and review a new plan before applying. A fresh environment needs no state migration.
+If existing state still tracks the Kubernetes objects under the addresses below, back up the state before upgrading. For each listed address present in `tofu state list`, run `tofu state rm OLD_ADDRESS`, then `tofu import NEW_ADDRESS IMPORT_ID` from the environment’s add-on root. Complete the imports and review a new plan before applying. A fresh environment needs no state migration.
 
 | Old address | New address | Import ID |
 | --- | --- | --- |

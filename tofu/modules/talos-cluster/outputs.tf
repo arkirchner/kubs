@@ -2,6 +2,8 @@ output "kubeconfig" {
   description = "Kubernetes configuration for cluster access"
   value       = talos_cluster_kubeconfig.this.kubeconfig_raw
   sensitive   = true
+
+  depends_on = [data.http.kubernetes_ready]
 }
 
 output "talosconfig" {
@@ -23,12 +25,6 @@ output "controlplane_nodes" {
 output "worker_nodes" {
   description = "Worker node IPs"
   value       = var.worker_ips
-}
-
-output "kubernetes_client_configuration" {
-  description = "Kubernetes client configuration for provider setup"
-  value       = talos_cluster_kubeconfig.this.kubernetes_client_configuration
-  sensitive   = true
 }
 
 output "schematic_id" {

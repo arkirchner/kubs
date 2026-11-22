@@ -34,27 +34,8 @@ variable "worker_ips" {
   default     = ["10.0.0.20", "10.0.0.21"]
 }
 
-variable "certificate_dns_names" {
-  description = "DNS names for the TLS certificate"
-  type        = list(string)
-  default     = ["longhorn.test.local"]
-}
-
-variable "longhorn_host" {
-  description = "Hostname for the Longhorn UI"
-  type        = string
-  default     = "longhorn.test.local"
-}
-
 variable "ephemeral_disk_size" {
   description = "Size of the EPHEMERAL volume on worker system disks"
   type        = string
   default     = "10GB"
-}
-
-variable "admin_htpasswd" {
-  description = "Precomputed bcrypt htpasswd entry for Longhorn basic authentication"
-  type        = string
-  sensitive   = true
-  nullable    = false
 }
